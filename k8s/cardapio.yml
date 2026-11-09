@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-cardapio
+  namespace: lanchonete
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  selector:
+    app: ms-cardapio
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-cardapio
+  namespace: lanchonete
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ms-cardapio
+  template:
+    metadata:
+      labels:
+        app: ms-cardapio
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: ms-cardapio
+          image: SEU_REGISTRY/ms-cardapio:1.0.0
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DB_URL
+              value: jdbc:mysql://mysql-cardapio:3306/cardapiodb
+            - name: DB_USERNAME
+              value: cardapio
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cardapio-db
+                  key: password
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: '1'
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+      volumes:
+        - name: tmp
+          emptyDir: {}

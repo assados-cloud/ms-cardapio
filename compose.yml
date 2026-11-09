@@ -1,0 +1,31 @@
+services:
+  mysql-cardapio:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: cardapiodb
+      MYSQL_USER: cardapio
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Copie .env.example para .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD no .env}
+    volumes:
+      - mysql-cardapio-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h 127.0.0.1 -u $$MYSQL_USER -D cardapiodb -e 'SELECT 1'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+  ms-cardapio:
+    build: .
+    image: ms-cardapio:1.0.0
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:mysql://mysql-cardapio:3306/cardapiodb
+      DB_USERNAME: cardapio
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      mysql-cardapio:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  mysql-cardapio-data:
