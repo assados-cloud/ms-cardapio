@@ -1,4 +1,4 @@
-# ms-cardapio — Equipe 15
+# Cardápio da Lanchonete
 
 Microsserviço de produtos e preços da lanchonete, em Java 17 e Spring Boot 3.5.16. Banco exclusivo MySQL (`cardapiodb`), API REST, migrações Flyway, Docker e Kubernetes.
 
